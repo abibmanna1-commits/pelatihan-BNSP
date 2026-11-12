@@ -1,0 +1,33 @@
+
+/* RESET CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+}
+
+a {
+  transition: 0.2s ease;
+}
