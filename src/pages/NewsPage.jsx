@@ -1,5 +1,5 @@
-
 import NewsFeed from '../components/NewsFeed';
+import './NewsPage.css';
 
 export default function NewsPage() {
   return (

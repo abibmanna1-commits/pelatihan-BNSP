@@ -1,15 +1,17 @@
-
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function NotFoundPage() {
-  return (
-    <div className="not-found">
-      <h1>404</h1>
-      <h2>Halaman Tidak Ditemukan</h2>
-      <p>Maaf, halaman yang kamu cari tidak tersedia.</p>
+  const { pathname } = useLocation();
 
-      <Link to="/" className="back-button">
-        Kembali ke Beranda
+  return (
+    <div className="page-card not-found-container">
+      <div className="not-found-code">404</div>
+      <h2>Ups! Halaman Tidak Ditemukan</h2>
+      <p>
+        Alamat <b>{pathname}</b> mungkin sudah dipindahkan atau salah ketik.
+      </p>
+      <Link to="/" className="btn-primary">
+        Kembali ke Direktori Tim
       </Link>
     </div>
   );
