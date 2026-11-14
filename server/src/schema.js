@@ -51,6 +51,14 @@ export const updateMemberSchema = z
     message: 'Tidak ada data yang diubah',
   });
 
+export const createKategoriSchema = z.object({
+  nama: z
+    .string()
+    .trim()
+    .min(1, 'Nama kategori wajib diisi')
+    .max(80, 'Nama kategori maksimal 80 karakter'),
+});
+
 // Input dari JSON/form bisa berupa string ("8") — ubah ke angka,
 // tetapi biarkan kosong/null/undefined agar validasi "wajib diisi" tetap jalan.
 function toNumber(value) {

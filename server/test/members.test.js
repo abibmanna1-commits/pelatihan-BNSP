@@ -11,6 +11,7 @@ const { createApp } = await import('../src/app.js');
 let server;
 let baseUrl;
 let createdId;
+let createdCategoryId;
 
 async function request(path, options = {}) {
   const res = await fetch(`${baseUrl}${path}`, {
@@ -31,7 +32,48 @@ before(async () => {
 
 after(async () => {
   await new Promise((resolve) => server.close(resolve));
+  if (createdCategoryId) {
+    await pool.query('DELETE FROM kategori WHERE id = ?', [createdCategoryId]);
+  }
   await pool.end();
+});
+
+test('POST /api/kategori membuat kategori dan menolak nama duplikat', async () => {
+  const nama = `Kategori Uji ${Date.now()}`;
+  const dibuat = await request('/api/kategori', {
+    method: 'POST',
+    body: JSON.stringify({ nama: `  ${nama}  ` }),
+  });
+
+  assert.equal(dibuat.status, 201);
+  assert.equal(dibuat.body.nama, nama);
+  createdCategoryId = dibuat.body.id;
+
+  const duplikat = await request('/api/kategori', {
+    method: 'POST',
+    body: JSON.stringify({ nama }),
+  });
+  assert.equal(duplikat.status, 409);
+
+  const daftar = await request('/api/kategori');
+  assert.equal(daftar.status, 200);
+  assert.ok(daftar.body.some((kategori) => kategori.id === createdCategoryId));
+});
+
+test('POST /api/kategori menolak nama kosong atau terlalu panjang', async () => {
+  const kosong = await request('/api/kategori', {
+    method: 'POST',
+    body: JSON.stringify({ nama: '   ' }),
+  });
+  assert.equal(kosong.status, 400);
+  assert.ok(kosong.body.errors.nama);
+
+  const terlaluPanjang = await request('/api/kategori', {
+    method: 'POST',
+    body: JSON.stringify({ nama: 'x'.repeat(81) }),
+  });
+  assert.equal(terlaluPanjang.status, 400);
+  assert.ok(terlaluPanjang.body.errors.nama);
 });
 
 test('GET /api/members mengembalikan array kosong saat belum ada data', async () => {

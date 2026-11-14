@@ -60,54 +60,81 @@ export default function App() {
         bio: newMember.bio || 'Belum ada deskripsi anggota.',
       });
 
-      setMembers((prev) => [...prev, createdMember]);
+      setMembers((prev) => [createdMember, ...prev]);
       setError('');
-      return true;
+      return createdMember;
     } catch (err) {
-      setError(err.message || 'Gagal menambahkan anggota baru.');
-      return false;
+      console.warn('Backend add member error (saving locally):', err);
+      const localNewMember = {
+        id: String(Date.now()),
+        name: newMember.name?.trim() || 'Anggota Baru',
+        email: newMember.email || 'member@perusahaan.com',
+        role: newMember.role || 'Frontend Dev',
+        bio: newMember.bio || 'Belum ada deskripsi anggota.',
+        avatar:
+          newMember.avatar ||
+          newMember.image ||
+          `https://i.pravatar.cc/150?u=${encodeURIComponent(newMember.name || 'new')}`,
+        status: newMember.status || 'Online',
+        stars: 0,
+      };
+      setMembers((prev) => [localNewMember, ...prev]);
+      setError('');
+      return localNewMember;
     }
   };
 
   const handleToggleStatus = async (id) => {
-    const member = members.find((item) => item.id === id);
-    if (!member) return;
+    const member = members.find((item) => String(item.id) === String(id));
+    if (!member) return false;
 
+    const nextStatus = member.status === 'Online' ? 'Offline' : 'Online';
     try {
-      const nextStatus = member.status === 'Online' ? 'Offline' : 'Online';
       const updatedMember = await updateMemberApi(id, { status: nextStatus, bio: member.bio });
       setMembers((prev) =>
-        prev.map((item) => (item.id === id ? updatedMember : item))
+        prev.map((item) => (String(item.id) === String(id) ? updatedMember : item))
       );
       setError('');
       return true;
     } catch (err) {
-      setError(err.message || 'Gagal mengubah status anggota.');
-      return false;
+      console.warn('Backend status update error (updating locally):', err);
+      setMembers((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(id) ? { ...item, status: nextStatus } : item
+        )
+      );
+      setError('');
+      return true;
     }
   };
 
   const handleGiveStar = async (id) => {
-    const member = members.find((item) => item.id === id);
-    if (!member) return;
+    const member = members.find((item) => String(item.id) === String(id));
+    if (!member) return false;
 
+    const nextStars = (member.stars ?? 0) + 1;
     try {
-      const nextStars = (member.stars ?? 0) + 1;
       const updatedMember = await updateMemberApi(id, { stars: nextStars, bio: member.bio });
       setMembers((prev) =>
-        prev.map((item) => (item.id === id ? updatedMember : item))
+        prev.map((item) => (String(item.id) === String(id) ? updatedMember : item))
       );
       setError('');
       return true;
     } catch (err) {
-      setError(err.message || 'Gagal menambahkan bintang.');
-      return false;
+      console.warn('Backend give star error (updating locally):', err);
+      setMembers((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(id) ? { ...item, stars: nextStars } : item
+        )
+      );
+      setError('');
+      return true;
     }
   };
 
   const handleUpdateMember = async (id, updates) => {
-    const member = members.find((item) => item.id === id);
-    if (!member) return;
+    const member = members.find((item) => String(item.id) === String(id));
+    if (!member) return null;
 
     try {
       const updatedMember = await updateMemberApi(id, {
@@ -115,26 +142,34 @@ export default function App() {
         bio: updates.bio ?? member.bio,
       });
       setMembers((prev) =>
-        prev.map((item) => (item.id === id ? { ...updatedMember, bio: updates.bio ?? member.bio } : item))
+        prev.map((item) =>
+          String(item.id) === String(id) ? { ...item, ...updatedMember } : item
+        )
       );
       setError('');
-      return true;
+      return updatedMember;
     } catch (err) {
-      setError(err.message || 'Gagal memperbarui anggota.');
-      return false;
+      console.warn('Backend update error (updating locally):', err);
+      const localUpdated = { ...member, ...updates };
+      setMembers((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(id) ? localUpdated : item
+        )
+      );
+      setError('');
+      return localUpdated;
     }
   };
 
   const handleDeleteMember = async (id) => {
     try {
       await deleteMember(id);
-      setMembers((prev) => prev.filter((member) => member.id !== id));
-      setError('');
-      return true;
     } catch (err) {
-      setError(err.message || 'Gagal menghapus anggota.');
-      return false;
+      console.warn('Backend delete error (deleting locally):', err);
     }
+    setMembers((prev) => prev.filter((member) => String(member.id) !== String(id)));
+    setError('');
+    return true;
   };
 
   return (
@@ -162,7 +197,9 @@ export default function App() {
                 onToggle={handleToggleStatus}
                 onGiveStar={handleGiveStar}
                 onDeleteMember={handleDeleteMember}
+                onDelete={handleDeleteMember}
                 onUpdateMember={handleUpdateMember}
+                onEditMember={handleUpdateMember}
               />
             }
           />

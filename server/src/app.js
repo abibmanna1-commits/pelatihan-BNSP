@@ -8,6 +8,7 @@ import { pool } from './db.js';
 
 import {
   createBarangSchema,
+  createKategoriSchema,
   createMemberSchema,
   updateBarangSchema,
   updateMemberSchema,
@@ -596,6 +597,76 @@ export function createApp() {
       );
 
       res.json(rows);
+    })
+  );
+
+  app.post(
+    '/api/kategori',
+    asyncHandler(async (req, res) => {
+      const parsed = validate(createKategoriSchema, req.body);
+
+      if (parsed.errors) {
+        return res.status(400).json({
+          message: parsed.message,
+          errors: parsed.errors,
+        });
+      }
+
+      try {
+        const [result] = await pool.query(
+          'INSERT INTO kategori (nama) VALUES (?)',
+          [parsed.data.nama]
+        );
+
+        res.status(201).json({
+          id: result.insertId,
+          nama: parsed.data.nama,
+        });
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({
+            message: 'Kategori dengan nama tersebut sudah ada.',
+            errors: { nama: 'Gunakan nama kategori yang berbeda.' },
+          });
+        }
+
+        throw error;
+      }
+    })
+  );
+
+  app.delete(
+    '/api/kategori/:id',
+    asyncHandler(async (req, res) => {
+      const id = parseId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({
+          message: 'ID kategori harus berupa angka positif.',
+        });
+      }
+
+      try {
+        const [result] = await pool.query(
+          'DELETE FROM kategori WHERE id = ?',
+          [id]
+        );
+
+        if (result.affectedRows === 0) {
+          return res.status(404).json({
+            message: 'Kategori tidak ditemukan.',
+          });
+        }
+
+        res.status(204).end();
+      } catch (error) {
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+          return res.status(409).json({
+            message: 'Kategori tidak dapat dihapus karena masih digunakan oleh barang.',
+          });
+        }
+
+        throw error;
+      }
     })
   );
 

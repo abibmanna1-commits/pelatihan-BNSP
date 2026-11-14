@@ -4,10 +4,10 @@
    GLOBAL CSS & THEME VARIABLES
 ======================================================== */
 :root {
-  --primary: #2563eb;
+  --primary: #315ee8;
   --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
-  --primary-border: #bfdbfe;
+  --primary-light: #edf3ff;
+  --primary-border: #c9d8ff;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --border-color: #e2e8f0;
@@ -43,9 +43,9 @@ button {
    APP LAYOUT
 ======================================================== */
 .app-layout {
-  max-width: 1200px;
+  max-width: 1480px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 28px 36px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -58,8 +58,8 @@ button {
 
 .app-footer {
   text-align: center;
-  margin-top: 48px;
-  padding: 24px 0 12px;
+  margin-top: 40px;
+  padding: 24px 0 16px;
   border-top: 1px solid var(--border-color);
   color: var(--text-muted);
   font-size: 13px;
@@ -70,20 +70,20 @@ button {
 ======================================================== */
 .navbar-container {
   position: sticky;
-  top: 16px;
+  top: 12px;
   z-index: 50;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 32px;
+  padding: 13px 22px;
+  background: rgb(255 255 255 / 88%);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgb(226 232 240 / 85%);
+  border-radius: 18px;
+  box-shadow: 0 10px 32px rgb(15 23 42 / 5%);
+  margin-bottom: 26px;
 }
 
 .navbar-brand {
@@ -96,7 +96,15 @@ button {
 }
 
 .brand-icon {
-  font-size: 22px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #315ee8, #704be7);
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 6px 14px rgb(49 94 232 / 22%);
 }
 
 .navbar-menu {
@@ -110,7 +118,7 @@ button {
   color: var(--text-muted);
   font-weight: 600;
   font-size: 14px;
-  padding: 8px 16px;
+  padding: 9px 14px;
   border-radius: var(--radius-md);
   transition: all 0.2s ease;
 }
@@ -823,11 +831,15 @@ button {
 ======================================================== */
 @media (max-width: 768px) {
   .app-layout {
-    padding: 16px 12px;
+    padding: 16px 14px;
   }
 
   .navbar-container {
     padding: 12px 16px;
+  }
+
+  .app-footer {
+    margin-top: 28px;
   }
 
   .navbar-menu {

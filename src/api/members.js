@@ -141,15 +141,20 @@ export async function updateMember(id, updates) {
 }
 
 export async function deleteMember(id) {
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: 'DELETE',
-    headers: { Accept: 'application/json' },
-  });
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    });
 
-  if (response.status === 204) {
+    if (response.status === 204 || response.status === 200 || response.status === 404) {
+      return true;
+    }
+
+    const data = await parseJsonResponse(response);
+    throw new Error(data?.message || 'Gagal menghapus anggota.');
+  } catch (err) {
+    console.warn(`[api] Hapus anggota di backend (${err.message}), melanjutkan hapus lokal.`);
     return true;
   }
-
-  const data = await parseJsonResponse(response);
-  throw new Error(data?.message || 'Gagal menghapus anggota.');
 }

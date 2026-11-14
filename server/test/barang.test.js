@@ -183,6 +183,30 @@ test('GET /api/barang/:id menolak id yang bukan angka', async () => {
   assert.equal(status, 400);
 });
 
+test('DELETE /api/kategori/:id menolak kategori yang masih dipakai', async () => {
+  const dibuat = await request('/api/barang', {
+    method: 'POST',
+    body: JSON.stringify({
+      nama: 'Barang uji kategori terpakai',
+      kategoriId: kategori.elektronik,
+      stok: 1,
+    }),
+  });
+  assert.equal(dibuat.status, 201);
+
+  try {
+    const { status, body } = await request(
+      `/api/kategori/${kategori.elektronik}`,
+      { method: 'DELETE' }
+    );
+
+    assert.equal(status, 409);
+    assert.match(body.message, /masih digunakan oleh barang/);
+  } finally {
+    await request(`/api/barang/${dibuat.body.id}`, { method: 'DELETE' });
+  }
+});
+
 test('DELETE /api/barang/:id menghapus barang', async () => {
   const hapus = await request(`/api/barang/${barangId}`, { method: 'DELETE' });
   assert.equal(hapus.status, 204);
@@ -196,6 +220,23 @@ test('DELETE /api/barang/:id mengembalikan 404 bila sudah tidak ada', async () =
   const { status } = await request(`/api/barang/${barangId}`, { method: 'DELETE' });
 
   assert.equal(status, 404);
+});
+
+test('DELETE /api/kategori/:id menghapus kategori yang tidak digunakan', async () => {
+  const hapus = await request(`/api/kategori/${kategori.makanan}`, {
+    method: 'DELETE',
+  });
+  assert.equal(hapus.status, 204);
+
+  const tidakAda = await request(`/api/kategori/${kategori.makanan}`, {
+    method: 'DELETE',
+  });
+  assert.equal(tidakAda.status, 404);
+
+  const idTidakValid = await request('/api/kategori/bukan-angka', {
+    method: 'DELETE',
+  });
+  assert.equal(idTidakValid.status, 400);
 });
 
 test('CORS mengizinkan origin frontend React', async () => {

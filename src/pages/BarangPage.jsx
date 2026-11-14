@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   createBarang,
+  createKategori,
   deleteBarang,
+  deleteKategori,
   fallbackBarang,
   fallbackKategori,
   fetchBarang,
@@ -28,6 +30,11 @@ export default function BarangPage() {
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
 
   const handleReload = async () => {
     setIsLoading(true);
@@ -104,7 +111,12 @@ export default function BarangPage() {
     setEditingId(null);
     setFormData({
       nama: '',
-      kategoriId: kategoriList[0]?.id ? String(kategoriList[0].id) : '1',
+      kategoriId:
+        selectedKategori !== 'all'
+          ? selectedKategori
+          : kategoriList[0]?.id
+            ? String(kategoriList[0].id)
+            : '1',
       stok: 0,
     });
     setFormError('');
@@ -126,6 +138,61 @@ export default function BarangPage() {
     setShowModal(false);
     setEditingId(null);
     setFormError('');
+  };
+
+  const handleCreateCategory = async (event) => {
+    event.preventDefault();
+    const trimmedName = categoryName.trim();
+    if (!trimmedName) {
+      setCategoryError('Nama kategori wajib diisi.');
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setCategoryError('');
+    try {
+      const created = await createKategori(trimmedName);
+      setKategoriList((previous) =>
+        [...previous, created].sort((a, b) => a.nama.localeCompare(b.nama, 'id'))
+      );
+      setSelectedKategori(String(created.id));
+      setCategoryName('');
+    } catch (err) {
+      setCategoryError(err.message || 'Gagal menambahkan kategori.');
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (category) => {
+    if (
+      !window.confirm(
+        `Hapus kategori "${category.nama}"? Kategori yang masih digunakan barang tidak dapat dihapus.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingCategoryId(category.id);
+    setCategoryError('');
+    try {
+      await deleteKategori(category.id);
+      setKategoriList((previous) =>
+        previous.filter((item) => item.id !== category.id)
+      );
+      setSelectedKategori((current) =>
+        String(current) === String(category.id) ? 'all' : current
+      );
+      setFormData((previous) =>
+        String(previous.kategoriId) === String(category.id)
+          ? { ...previous, kategoriId: '' }
+          : previous
+      );
+    } catch (err) {
+      setCategoryError(err.message || 'Gagal menghapus kategori.');
+    } finally {
+      setDeletingCategoryId(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -289,6 +356,16 @@ export default function BarangPage() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className="btn-add-category"
+            onClick={() => {
+              setCategoryError('');
+              setShowCategoryModal(true);
+            }}
+          >
+            <span aria-hidden="true">＋</span> Kategori
+          </button>
         </div>
       </div>
 
@@ -461,6 +538,109 @@ export default function BarangPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div
+          className="barang-modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSavingCategory) {
+              setShowCategoryModal(false);
+            }
+          }}
+        >
+          <section
+            className="barang-modal-card category-modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="category-modal-title"
+          >
+            <div className="modal-header">
+              <div>
+                <span className="barang-eyebrow">PENGELOLAAN INVENTARIS</span>
+                <h2 id="category-modal-title">Kelola Kategori</h2>
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setShowCategoryModal(false)}
+                disabled={isSavingCategory}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="category-modal-content">
+              <p className="category-modal-description">
+                Tambahkan kategori baru atau hapus kategori yang sudah tidak digunakan.
+              </p>
+              {categoryError && (
+                <div className="modal-error-message" role="alert">
+                  {categoryError}
+                </div>
+              )}
+
+              <ul className="category-list">
+                {kategoriList.map((category) => (
+                  <li className="category-list-item" key={category.id}>
+                    <span>{category.nama}</span>
+                    <button
+                      type="button"
+                      className="category-delete-button"
+                      onClick={() => handleDeleteCategory(category)}
+                      disabled={
+                        isSavingCategory ||
+                        deletingCategoryId !== null
+                      }
+                      aria-label={`Hapus kategori ${category.nama}`}
+                    >
+                      {deletingCategoryId === category.id
+                        ? 'Menghapus...'
+                        : 'Hapus'}
+                    </button>
+                  </li>
+                ))}
+                {kategoriList.length === 0 && (
+                  <li className="category-list-empty">Belum ada kategori.</li>
+                )}
+              </ul>
+
+              <form className="category-create-form" onSubmit={handleCreateCategory}>
+                <div className="form-group">
+                  <label htmlFor="nama-kategori">Tambah kategori baru</label>
+                  <input
+                    id="nama-kategori"
+                    type="text"
+                    maxLength={80}
+                    autoFocus
+                    required
+                    value={categoryName}
+                    onChange={(event) => setCategoryName(event.target.value)}
+                    placeholder="Contoh: Peralatan Kantor"
+                  />
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => setShowCategoryModal(false)}
+                    disabled={isSavingCategory || deletingCategoryId !== null}
+                  >
+                    Selesai
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-save"
+                    disabled={isSavingCategory || deletingCategoryId !== null}
+                  >
+                    {isSavingCategory ? 'Menyimpan...' : 'Simpan Kategori'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
         </div>
       )}
     </div>

@@ -78,6 +78,40 @@ export async function fetchKategori() {
   return response.json();
 }
 
+export async function createKategori(nama) {
+  const response = await fetch(API_KATEGORI_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ nama: nama.trim() }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || 'Gagal menambahkan kategori.');
+  }
+
+  return data;
+}
+
+export async function deleteKategori(id) {
+  const response = await fetch(`${API_KATEGORI_URL}/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (response.status === 204) return true;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || 'Gagal menghapus kategori.');
+  }
+
+  return true;
+}
+
 export async function createBarang(data) {
   const response = await fetch(API_BARANG_URL, {
     method: 'POST',

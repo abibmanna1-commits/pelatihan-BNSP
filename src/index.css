@@ -12,9 +12,12 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgb(219 234 254 / 55%), transparent 34rem),
+    #f5f7fb;
   color: #172033;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 button,
@@ -30,6 +33,15 @@ button {
 
 button:hover {
   opacity: 0.85;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgb(96 165 250 / 65%);
+  outline-offset: 3px;
 }
 
 a {
