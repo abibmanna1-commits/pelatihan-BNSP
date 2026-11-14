@@ -622,6 +622,27 @@ button {
   width: 100%;
 }
 
+.news-sources {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.news-source-btn {
+  padding: 8px 14px;
+  color: var(--text-muted);
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.news-source-btn.active {
+  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 .news-toolbar {
   display: flex;
   justify-content: space-between;

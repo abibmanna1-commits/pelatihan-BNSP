@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import NewsCard from './NewsCard';
-import { mapNewsItems } from './newsMapper';
 
-const NEWS_URL = 'https://berita-indo-api.vercel.app/v1/cnn-news';
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 const fallbackArticles = [
   {
@@ -49,63 +48,104 @@ const fallbackArticles = [
   },
 ];
 
-async function fetchNewsItems(signal) {
-  const res = await fetch(NEWS_URL, { signal });
+async function fetchNewsItems(source, signal) {
+  const res = await fetch(`/api/news?source=${source}`, {
+    signal,
+    headers: { Accept: 'application/json' },
+  });
   if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+
   const json = await res.json();
-  const mapped = mapNewsItems(json.data);
-  if (!mapped || mapped.length === 0) throw new Error('Format data tidak sesuai');
-  return mapped;
+  if (!Array.isArray(json)) {
+    throw new Error('Format data tidak sesuai');
+  }
+
+  return json;
 }
 
 function NewsFeed() {
+  const [source, setSource] = useState('cnn');
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const loadNews = useCallback(async (signal, showLoading = false) => {
+    if (showLoading) setIsLoading(true);
+    try {
+      const items = await fetchNewsItems(source, signal);
+      if (signal?.aborted) return;
+      setNews(items);
+      setError(null);
+      setLastUpdated(new Date());
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setError(err.message || 'Gagal mengambil berita terkini dari API.');
+      setNews(
+        fallbackArticles.map((a) => ({
+          ...a,
+          category: source === 'kompas' ? 'Kompas' : a.category,
+        }))
+      );
+    } finally {
+      if (!signal?.aborted) setIsLoading(false);
+    }
+  }, [source]);
 
   useEffect(() => {
     const controller = new AbortController();
+    const initialRequest = window.setTimeout(
+      () => loadNews(controller.signal),
+      0
+    );
 
-    (async () => {
-      try {
-        const items = await fetchNewsItems(controller.signal);
-        setNews(items);
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        setError(err.message || 'Gagal mengambil berita terkini dari API.');
-        // Gunakan berita cadangan agar tampilan tetap informatif
-        setNews(fallbackArticles);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    const intervalId = window.setInterval(
+      () => loadNews(controller.signal),
+      AUTO_REFRESH_MS
+    );
 
-    return () => controller.abort();
-  }, []);
+    return () => {
+      controller.abort();
+      window.clearTimeout(initialRequest);
+      window.clearInterval(intervalId);
+    };
+  }, [loadNews]);
 
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const items = await fetchNewsItems();
-      setNews(items);
-    } catch (err) {
-      setError(err.message || 'Gagal mengambil berita terkini dari API.');
-      setNews(fallbackArticles);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleRefresh = () => loadNews(undefined, true);
+  const sourceLabel = source === 'cnn' ? 'CNN Indonesia' : 'Kompas';
 
   return (
     <div className="news-container">
+      <div className="news-sources" aria-label="Pilih sumber berita">
+        {Object.entries({ cnn: 'CNN Indonesia', kompas: 'Kompas' }).map(
+          ([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`news-source-btn ${source === key ? 'active' : ''}`}
+              aria-pressed={source === key}
+              onClick={() => {
+                if (source === key) return;
+                setSource(key);
+                setNews([]);
+                setLastUpdated(null);
+                setError(null);
+                setIsLoading(true);
+              }}
+            >
+              {label}
+            </button>
+          )
+        )}
+      </div>
+
       <div className="news-toolbar">
         <div>
-          <h2>Berita Terkini CNN Indonesia</h2>
+          <h2>Berita Terkini {sourceLabel}</h2>
           <p>
-            {error
-              ? `Menampilkan ${news.length} artikel arsip (mode cadangan offline)`
-              : `Menampilkan ${news.length} artikel dari Berita Indo API`}
+            {lastUpdated
+              ? `Diperbarui ${lastUpdated.toLocaleTimeString('id-ID')} · otomatis setiap 5 menit`
+              : 'Berita diperbarui otomatis setiap 5 menit'}
           </p>
         </div>
         <button
@@ -118,27 +158,37 @@ function NewsFeed() {
         </button>
       </div>
 
-      {isLoading && (
+      {isLoading && news.length === 0 && (
         <div className="spinner-box">
           <div className="css-spinner"></div>
-          <p>Mengunduh berita nasional terbaru...</p>
+          <p>Mengunduh berita terbaru...</p>
         </div>
       )}
 
       {error && !isLoading && (
         <div className="error-banner">
           <h5>Pemberitahuan Jaringan</h5>
-          <p>{error} (Menampilkan data cadangan)</p>
+          <p>
+            {error}
+            {news.length > 0 && ' (Menampilkan artikel tersimpan)'}
+          </p>
           <button type="button" onClick={handleRefresh}>
             Coba Ambil Ulang
           </button>
         </div>
       )}
 
-      {!isLoading && (
+      {!isLoading && news.length === 0 && !error && (
+        <div className="empty-state">Belum ada berita untuk ditampilkan.</div>
+      )}
+
+      {news.length > 0 && (
         <div className="news-grid">
-          {news.map((item, i) => (
-            <NewsCard key={i} {...item} />
+          {news.map((item, index) => (
+            <NewsCard
+              key={item.link || `${source}-${item.title}-${index}`}
+              {...item}
+            />
           ))}
         </div>
       )}

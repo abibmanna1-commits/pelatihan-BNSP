@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom';
 
-function TeamCard({ id, name, role, avatar, status, stars, onToggleStatus, onAddStar, bio }) {
+function TeamCard({
+  id,
+  name,
+  role,
+  email,
+  avatar,
+  status,
+  stars,
+  onToggleStatus,
+  onAddStar,
+  onDeleteMember,
+  onEditMember,
+  bio,
+}) {
   const isOnline = status === 'Online';
 
   return (
@@ -37,6 +50,20 @@ function TeamCard({ id, name, role, avatar, status, stars, onToggleStatus, onAdd
             onClick={() => onToggleStatus?.(id)}
           >
             Ubah ke {isOnline ? 'Offline' : 'Online'}
+          </button>
+          <button
+            type="button"
+            className="btn-edit-member"
+            onClick={() => onEditMember?.({ id, name, role, email, avatar, status, stars, bio })}
+          >
+            ✏️ Edit
+          </button>
+          <button
+            type="button"
+            className="btn-delete-member"
+            onClick={() => onDeleteMember?.(id)}
+          >
+            🗑️ Hapus
           </button>
         </div>
 

@@ -15,6 +15,9 @@ export default function Navbar({ totalMembers = 0 }) {
         <NavLink to="/" end className={getLinkClass}>
           Direktori
         </NavLink>
+        <NavLink to="/barang" className={getLinkClass}>
+          Data Barang
+        </NavLink>
         <NavLink to="/news" className={getLinkClass}>
           Berita Terkini
         </NavLink>

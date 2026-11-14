@@ -13,14 +13,24 @@ const memberSchema = z.object({
     .max(120, 'Bio maksimal 120 karakter'),
 });
 
-function AddMemberForm({ onAddMember, onClose }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: '',
-    bio: '',
-  });
+const emptyForm = {
+  name: '',
+  email: '',
+  role: '',
+  bio: '',
+};
+
+function AddMemberForm({
+  onAddMember,
+  onClose,
+  onSubmit,
+  initialData = null,
+  submitLabel = '+ Simpan Anggota',
+  title = 'Tambah Anggota Tim Baru',
+}) {
+  const [formData, setFormData] = useState(() => initialData || emptyForm);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ref, tampil] = useFadeIn();
 
   const handleChange = (e) => {
@@ -29,7 +39,7 @@ function AddMemberForm({ onAddMember, onClose }) {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const result = memberSchema.safeParse(formData);
     if (!result.success) {
@@ -41,7 +51,7 @@ function AddMemberForm({ onAddMember, onClose }) {
       return;
     }
 
-    onAddMember({
+    const payload = {
       name: result.data.name.trim(),
       email: result.data.email.trim(),
       role: result.data.role,
@@ -49,11 +59,26 @@ function AddMemberForm({ onAddMember, onClose }) {
       avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(result.data.name)}`,
       status: 'Online',
       stars: 0,
-    });
+    };
 
-    setFormData({ name: '', email: '', role: '', bio: '' });
-    setErrors({});
-    if (onClose) onClose();
+    setIsSubmitting(true);
+    try {
+      const succeeded = onSubmit
+        ? await onSubmit(payload)
+        : await onAddMember?.(payload);
+      if (succeeded === false) return;
+
+      setFormData(emptyForm);
+      setErrors({});
+      if (onClose) onClose();
+    } catch (submitError) {
+      setErrors((prev) => ({
+        ...prev,
+        _form: submitError.message || 'Gagal menyimpan data anggota.',
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -63,7 +88,7 @@ function AddMemberForm({ onAddMember, onClose }) {
       onSubmit={handleSubmit}
     >
       <div className="form-header">
-        <h3 className="form-title">Tambah Anggota Tim Baru</h3>
+        <h3 className="form-title">{title}</h3>
         {onClose && (
           <button
             type="button"
@@ -138,8 +163,9 @@ function AddMemberForm({ onAddMember, onClose }) {
       </div>
 
       <div className="form-actions">
-        <button type="submit" className="btn-submit">
-          + Simpan Anggota
+        {errors._form && <p className="error-text" role="alert">{errors._form}</p>}
+        <button type="submit" className="btn-submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Menyimpan...' : submitLabel}
         </button>
       </div>
     </form>

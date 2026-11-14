@@ -8,10 +8,13 @@ export default function TeamPage({
   onAddMember,
   onToggle,
   onGiveStar,
+  onDeleteMember,
+  onUpdateMember,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
   const [showForm, setShowForm] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
   const [ref, tampil] = useFadeIn();
 
   const totalMembers = members.length;
@@ -26,6 +29,17 @@ export default function TeamPage({
       filterStatus === 'Semua' ? true : m.status === filterStatus;
     return (matchName || matchRole) && matchStatus;
   });
+
+  const handleSaveEdit = async (payload) => {
+    if (!editingMember || !onUpdateMember) return;
+
+    const succeeded = await onUpdateMember(editingMember.id, {
+      ...payload,
+      status: editingMember.status,
+      stars: editingMember.stars,
+    });
+    if (succeeded !== false) setEditingMember(null);
+  };
 
   return (
     <div className={`directory-container ${tampil ? 'tampil' : ''}`} ref={ref}>
@@ -67,11 +81,30 @@ export default function TeamPage({
       {showForm && (
         <div className="form-toggle-wrapper">
           <AddMemberForm
-            onAddMember={(data) => {
-              onAddMember(data);
-              setShowForm(false);
+            onSubmit={async (data) => {
+              const succeeded = await onAddMember(data);
+              if (succeeded !== false) setShowForm(false);
+              return succeeded;
             }}
             onClose={() => setShowForm(false)}
+          />
+        </div>
+      )}
+
+      {editingMember && (
+        <div className="form-toggle-wrapper">
+          <AddMemberForm
+            key={editingMember.id}
+            title="Edit Anggota Tim"
+            submitLabel="💾 Simpan Perubahan"
+            initialData={{
+              name: editingMember.name,
+              email: editingMember.email,
+              role: editingMember.role,
+              bio: editingMember.bio || '',
+            }}
+            onSubmit={handleSaveEdit}
+            onClose={() => setEditingMember(null)}
           />
         </div>
       )}
@@ -121,6 +154,8 @@ export default function TeamPage({
                 {...member}
                 onToggleStatus={onToggle}
                 onAddStar={onGiveStar}
+                onDeleteMember={onDeleteMember}
+                onEditMember={(selectedMember) => setEditingMember(selectedMember)}
               />
             ))}
           </div>
